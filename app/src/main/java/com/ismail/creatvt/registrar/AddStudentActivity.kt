@@ -9,10 +9,15 @@ import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.DatePicker
 import androidx.appcompat.app.AlertDialog
+import com.ismail.creatvt.registrar.db.RegistrarDatabase
+import com.ismail.creatvt.registrar.db.Student
 import kotlinx.android.synthetic.main.activity_add_student.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.launch
 import org.intellij.lang.annotations.Language
+import java.text.SimpleDateFormat
 import java.util.*
-import java.util.regex.Matcher
 import java.util.regex.Pattern
 
 class AddStudentActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener {
@@ -54,49 +59,73 @@ class AddStudentActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListen
     }
 
     private fun onSubmit(view: View) {
-        if (isDataValid()) {
-            saveDataToDb()
+        val student = getValidatedStudent()
+        if (student != null) {
+            saveDataToDb(student)
             finish()
         }
     }
 
-    private fun saveDataToDb() {
-        //Write code to save data to DB
+    private fun saveDataToDb(student: Student) {
+        //Get database object and Dao object
+        val db = RegistrarDatabase.getInstance(this)
+        val studentDao = db.getStudentDao()
+
+        //Create scope of IO Dispatcher to run db operations asynchronously
+        val scope = CoroutineScope(IO)
+
+        //launch coroutine to insert student data
+        scope.launch {
+            studentDao.insert(student)
+        }
     }
 
     /**
      * Checks if the user has entered valid data
      */
-    private fun isDataValid(): Boolean {
+    private fun getValidatedStudent(): Student? {
         val name = name_field.text.toString()
         val email = email_field.text.toString()
         val mobile = mobile_field.text.toString()
         val dateOfBirth = date_field.text.toString()
+        val isMale = male_option.isChecked
+        val className = class_spinner.selectedItem.toString()
 
         if (name.isEmpty()) {
             name_field.error = "Please enter name!"
-            return false
+            return null
         }
         name_field.error = null
 
         if (isEmailInvalid(email)) {
             email_field.error = "Please enter valid email!"
-            return false
+            return null
         }
         email_field.error = null
 
         if (isMobileInvalid(mobile)) {
             mobile_field.error = "Please enter valid mobile!"
-            return false
+            return null
         }
         mobile_field.error = null
 
         if (dateOfBirth.isEmpty()) {
             date_field.error = "Please enter date of birth!"
-            return false
+            return null
         }
         date_field.error = null
-        return true
+
+        val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.US)
+        val dob = dateFormat.parse(dateOfBirth) ?: return null
+
+        return Student(
+            name= name,
+            mobile= mobile,
+            email= email,
+            className = className,
+            isMale = isMale,
+            dateOfBirth = dob
+        )
     }
 
     private fun isMobileInvalid(mobile: String): Boolean {
@@ -153,6 +182,6 @@ class AddStudentActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListen
     }
 
     override fun onDateSet(view: DatePicker?, year: Int, month: Int, dayOfMonth: Int) {
-        date_field.text = "$dayOfMonth / $month / $year"
+        date_field.text = "$dayOfMonth/$month/$year"
     }
 }
