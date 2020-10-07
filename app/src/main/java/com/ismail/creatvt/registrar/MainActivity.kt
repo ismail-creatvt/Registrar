@@ -12,8 +12,18 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         add_student.setOnClickListener {
-            val intent = Intent(this, AddStudentActivity::class.java)
-            startActivity(intent)
+            startActivity(AddStudentActivity::class.java)
         }
+
+        manage_students.setOnClickListener {
+            startActivity(ManageStudentsActivity::class.java)
+        }
+
     }
+
+    private fun startActivity(activity: Class<out AppCompatActivity>) {
+        val intent = Intent(this, activity)
+        startActivity(intent)
+    }
+
 }

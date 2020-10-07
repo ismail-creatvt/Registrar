@@ -11,6 +11,7 @@ import android.widget.DatePicker
 import androidx.appcompat.app.AlertDialog
 import com.ismail.creatvt.registrar.db.RegistrarDatabase
 import com.ismail.creatvt.registrar.db.Student
+import com.ismail.creatvt.registrar.db.StudentDao
 import kotlinx.android.synthetic.main.activity_add_student.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
@@ -21,11 +22,43 @@ import java.util.*
 import java.util.regex.Pattern
 
 class AddStudentActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener {
+
+    private var studentId: Int = -1
+    private var studentDao: StudentDao?=null
+
+    //If the screen is opened to edit an existing student
+    private var isEdit = false
+
+    private val classNames = arrayListOf(
+        "M.Sc (C.S)",
+        "B.Sc (C.S)",
+        "MCA",
+        "BCA",
+        "B.Com",
+        "BBA",
+        "M.Com"
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_add_student)
 
+        val db = RegistrarDatabase.getInstance(this)
+        studentDao = db.getStudentDao()
+
         setUpClassDropDown()
+
+        studentId = intent.getIntExtra("studentId", -1)
+
+        if(studentId != -1){
+            isEdit = true
+
+            val student = studentDao!!.getStudent(studentId)
+
+            student.observe(this){
+                initializeStudentData(it)
+            }
+        }
 
         submit.setOnClickListener(this::onSubmit)
         cancel.setOnClickListener {
@@ -35,6 +68,24 @@ class AddStudentActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListen
         date_field.setOnClickListener {
             showDatePickerDialog()
         }
+    }
+
+    /**
+     * Initializes pre-filled information of the selected student
+     */
+    private fun initializeStudentData(student: Student) {
+        name_field.setText(student.name)
+        email_field.setText(student.email)
+        mobile_field.setText(student.mobile)
+        val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.US)
+        date_field.text = dateFormat.format(student.dateOfBirth)
+        if(student.isMale){
+            male_option.isChecked = true
+        } else{
+            female_option.isChecked = true
+        }
+        val position = classNames.indexOf(student.className)
+        class_spinner.setSelection(position)
     }
 
     private fun showDatePickerDialog() {
@@ -67,16 +118,19 @@ class AddStudentActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListen
     }
 
     private fun saveDataToDb(student: Student) {
-        //Get database object and Dao object
-        val db = RegistrarDatabase.getInstance(this)
-        val studentDao = db.getStudentDao()
+        if(studentDao == null) return
 
         //Create scope of IO Dispatcher to run db operations asynchronously
         val scope = CoroutineScope(IO)
 
         //launch coroutine to insert student data
         scope.launch {
-            studentDao.insert(student)
+            if(isEdit){
+                student.id = studentId
+                studentDao!!.update(student)
+            } else{
+                studentDao!!.insert(student)
+            }
         }
     }
 
@@ -147,31 +201,15 @@ class AddStudentActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListen
      * Shows a dialog to confirm whether the user wants to exit this screen
      */
     private fun showCancelConfirmationDialog() {
-        AlertDialog.Builder(this)
-            .setMessage(R.string.cancel_confirmation)
-            .setPositiveButton(R.string.yes) { dialogInterface: DialogInterface, i: Int ->
-                dialogInterface.dismiss()
-                finish()
-            }
-            .setNegativeButton(R.string.no) { dialogInterface: DialogInterface, i: Int ->
-                dialogInterface.dismiss()
-            }
-            .show()
+        AlertDialogManager.showConfirmation(this, R.string.cancel_confirmation){
+            finish()
+        }
     }
 
     /**
      * Sets up list of classes and attaches it to the spinner
      */
     private fun setUpClassDropDown() {
-        val classNames = arrayOf(
-            "M.Sc (C.S)",
-            "B.Sc (C.S)",
-            "MCA",
-            "BCA",
-            "B.Com",
-            "BBA",
-            "M.Com"
-        )
         val adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_item,
