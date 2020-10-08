@@ -38,7 +38,7 @@
             android:layout_marginTop="32dp"/>
 
         <Button
-            android:id="@+id/button3"
+            android:id="@+id/about_us"
             android:layout_width="match_parent"
             android:background="@drawable/white_button_bg"
             android:paddingTop="12dp"

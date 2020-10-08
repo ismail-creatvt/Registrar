@@ -6,28 +6,27 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-@Database(
-    entities = [Student::class],
-    version = 1,
-    exportSchema = false)
+@Database(entities = [Student::class], version = 1)
 @TypeConverters(value = [DateConverter::class])
-abstract class RegistrarDatabase : RoomDatabase() {
+abstract class RegistrarDatabase: RoomDatabase() {
 
     abstract fun getStudentDao():StudentDao
 
-    companion object {
+    companion object{
 
-        private var instance: RegistrarDatabase? = null
+        private var instance:RegistrarDatabase?=null
 
         fun getInstance(context: Context): RegistrarDatabase {
-            if (instance == null) {
+            if(instance == null){
                 instance = Room.databaseBuilder(
-                    context.applicationContext,
+                    context,
                     RegistrarDatabase::class.java,
                     "student_records"
                 ).build()
             }
             return instance!!
         }
+
     }
+
 }

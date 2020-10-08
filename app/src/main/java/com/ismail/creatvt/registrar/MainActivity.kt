@@ -19,6 +19,10 @@ class MainActivity : AppCompatActivity() {
             startActivity(ManageStudentsActivity::class.java)
         }
 
+        about_us.setOnClickListener {
+            startActivity(AboutUsActivity::class.java)
+        }
+
     }
 
     private fun startActivity(activity: Class<out AppCompatActivity>) {

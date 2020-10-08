@@ -14,6 +14,7 @@ import com.ismail.creatvt.registrar.db.Student
 import com.ismail.creatvt.registrar.db.StudentDao
 import kotlinx.android.synthetic.main.activity_add_student.*
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.launch
 import org.intellij.lang.annotations.Language
@@ -61,6 +62,7 @@ class AddStudentActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListen
         }
 
         submit.setOnClickListener(this::onSubmit)
+
         cancel.setOnClickListener {
             showCancelConfirmationDialog()
         }
@@ -77,13 +79,20 @@ class AddStudentActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListen
         name_field.setText(student.name)
         email_field.setText(student.email)
         mobile_field.setText(student.mobile)
+
+        //Date is in Date object format
+        //we have to convert it to string to set it to the textview
         val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.US)
         date_field.text = dateFormat.format(student.dateOfBirth)
+
+
         if(student.isMale){
             male_option.isChecked = true
         } else{
             female_option.isChecked = true
         }
+
+
         val position = classNames.indexOf(student.className)
         class_spinner.setSelection(position)
     }
@@ -111,9 +120,11 @@ class AddStudentActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListen
 
     private fun onSubmit(view: View) {
         val student = getValidatedStudent()
+        //if student is null that means that the data is invalid
+        //so don't save invalid data to database
         if (student != null) {
             saveDataToDb(student)
-            finish()
+            finish() //Close the activity
         }
     }
 
@@ -126,6 +137,7 @@ class AddStudentActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListen
         //launch coroutine to insert student data
         scope.launch {
             if(isEdit){
+                //Give the studentId of which the data is to be updated
                 student.id = studentId
                 studentDao!!.update(student)
             } else{
@@ -164,11 +176,13 @@ class AddStudentActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListen
         mobile_field.error = null
 
         if (dateOfBirth.isEmpty()) {
-            date_field.error = "Please enter date of birth!"
+            date_field.error = "Please select date of birth!"
             return null
         }
         date_field.error = null
 
+        //Convert date string to Date object
+        //e.g "03/10/1997" -> Date()
         val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.US)
         val dob = dateFormat.parse(dateOfBirth) ?: return null
 
